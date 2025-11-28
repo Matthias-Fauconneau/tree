@@ -2,6 +2,7 @@ package={name='tree', version='0.0.0', edition='2024'}
 build-dependencies={wgsl = {path='../ui/wgsl'}}
 
 [dependencies]
+rand='*'
 bytemuck='*'
 ui={path='../ui',features=['line']}
 vulkano={git='https://github.com/vulkano-rs/vulkano', default-features=false, features=['macros']}
