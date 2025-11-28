@@ -3,6 +3,7 @@ use ui::{Result, run, size, int2, Widget, vulkan, shader};
 use vulkan::{Context, Commands, Arc, ImageView, PrimitiveTopology, image, WriteDescriptorSet, linear};
 shader!{view}
 
+pub fn default<T: Default>() -> T { Default::default() }
 use std::f32::consts::PI;
 use {ui::{vector::{xy, xyz, vec2, vec3, cross, normalize, MinMax, minmax, rotate}, image::{Image, rgb, rgbf, sRGB8_EOTF, sRGB8_OETF12}}, rand::random};
 
@@ -47,8 +48,9 @@ fn event(&mut self, _context: &Context, _commands: &mut Commands, _size: size, _
 
 fn main() -> Result {
 
-	struct Node {
+	#[derive(Default)] struct Node {
 		position: vec3,
+		frame: [vec3; 3],
 		nodes: Vec<Node>,
 	}
 
@@ -59,14 +61,14 @@ fn main() -> Result {
 
 	let mut tree = Node{position: xyz{x: 0., y: 0., z: 1.}, nodes: vec![
 		Node{position: xyz{x: 0., y: 0., z: 1.}, nodes: vec![
-			Node{position: normalize(vec3{x: -1., y: 0., z: 1.}), nodes: vec![]},
-			Node{position: normalize(vec3{x: 1., y: 0., z: 1.}), nodes: vec![]},
-			Node{position: normalize(vec3{x: 0., y: -1., z: 1.}), nodes: vec![]},
-			Node{position: normalize(vec3{x: 0., y: 1., z: 1.}), nodes: vec![]}
-		]},
-		Node{position: normalize(vec3{x: -1., y: 0., z: 1.}), nodes: vec![]},
-		Node{position: normalize(vec3{x: 1., y: 0., z: 1.}), nodes: vec![]}
-	]};
+			Node{position: normalize(vec3{x: -1., y: 0., z: 1.}), ..default()},
+			Node{position: normalize(vec3{x: 1., y: 0., z: 1.}), ..default()},
+			Node{position: normalize(vec3{x: 0., y: -1., z: 1.}), ..default()},
+			Node{position: normalize(vec3{x: 0., y: 1., z: 1.}), ..default()}
+		], ..default()},
+		Node{position: normalize(vec3{x: -1., y: 0., z: 1.}), ..default()},
+		Node{position: normalize(vec3{x: 1., y: 0., z: 1.}), ..default()}
+	], ..default()};
 
 	fn depth_first(parent: &mut Node, f: &impl Fn(&mut Node)) {
 		for child in &mut parent.nodes { depth_first(child, f); }
@@ -74,19 +76,19 @@ fn main() -> Result {
 	}
 	for _ in 0..1 {
 		depth_first(&mut tree, &|Node{nodes,..}:&mut Node| if nodes.is_empty() { *nodes = vec![
-			Node{position: xyz{x: 0., y: 0., z: 1.}, nodes: vec![]},
-			Node{position: normalize(vec3{x: 0., y: 1., z: 1.}), nodes: vec![]}
+			Node{position: xyz{x: 0., y: 0., z: 1.}, ..default()},
+			Node{position: normalize(vec3{x: 0., y: 1., z: 1.}), ..default()}
 		];})
 	}
 	for _ in 0..0 {
 		depth_first(&mut tree, &|Node{nodes,..}:&mut Node| if nodes.is_empty() { *nodes = vec![
-			Node{position: xyz{x: 0., y: -1., z: 1.}, nodes: vec![]},
-			Node{position: xyz{x: 0., y: 1., z: 1.}, nodes: vec![]}
+			Node{position: xyz{x: 0., y: -1., z: 1.}, ..default()},
+			Node{position: xyz{x: 0., y: 1., z: 1.}, ..default()}
 		];})
 	}
 
-	fn walk_mut<T:Copy>(parent: &mut Node, f: &mut impl FnMut(vec3, &mut Node, T)->T, r: T) {
-		for child in &mut parent.nodes { let r = f(parent.position, child, r); walk_mut(child, f, r); }
+	fn walk_mut(parent: &mut Node, f: &mut impl FnMut(vec3, [vec3; 3], &mut Node)) {
+		for child in &mut parent.nodes { f(parent.position, parent.frame, child); walk_mut(child, f); }
 	}
 	let random_frame = |z| -> [vec3; 3] {
 		let z = normalize(z);
@@ -94,18 +96,35 @@ fn main() -> Result {
 		let y = normalize(cross(z, x));
 		[x,y,z]
 	};
-	let root_direction = tree.position;
-	walk_mut(&mut tree, &mut |parent_position, child, [x,y,z]:[vec3; 3]| {
+	tree.frame = random_frame(tree.position);
+	walk_mut(&mut tree, &mut |parent_position, [x,y,z]:[vec3; 3], child| {
 		let segment = child.position.x * x + child.position.y * y + child.position.z * z;
 		child.position = parent_position + segment;
-		random_frame(segment)
-	}, random_frame(root_direction));
+		child.frame = random_frame(segment);
+	});
 
 	fn walk(parent: &Node, f: &mut impl FnMut(&Node, &Node)) {
 		for child in &parent.nodes { f(parent, child); walk(child, f); }
 	}
+
 	let mut lines = vec![];
-	lines.push(([xyz{x: 0., y: 0., z: 0.}, tree.position], rgb{b: 1., g: 1., r: 1.}));
-	walk(&tree, &mut |parent, child| lines.push(([parent.position, child.position], rgb{b: 1., g: 1., r: 1.})) );
+
+	//lines.push(([xyz{x: 0., y: 0., z: 0.}, tree.position], rgb{b: 1., g: 1., r: 1.}));
+	//walk(&tree, &mut |parent, child| lines.push(([parent.position, child.position], rgb{b: 1., g: 1., r: 1.})) );
+	impl Node {
+		fn ring(&self) -> impl Iterator<Item=[vec3; 2]> {
+			let &Node{position, frame: [ex, ey, _], ..} = self;
+			const N : usize = 3;
+			(0..N).map(move |a| {
+				let b = a+1;
+				let [a, b] = [a, b].map(|t| t as f32*2.*PI/N as f32);
+				let [a, b] = [a, b].map(|t| { let (y,x) = t.sin_cos(); xy{x,y} });
+				let [a, b] = [a, b].map(|xy{x,y}| position+x*ex+y*ey);
+				[a,b]
+			})
+		}
+	}
+
+	walk(&tree, &mut |_, branch| lines.extend(branch.ring().map(|[a,b]| ([a,b], rgb{b: 1., g: 1., r: 1.}))));
 	run("tree", Box::new(|_, _| Ok(Box::new(App{lines, yaw: 0.}))))
 }
