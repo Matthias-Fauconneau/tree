@@ -3,17 +3,19 @@ struct Uniforms { view_projection: mat4x4<f32> }
 
 struct Vertex {
 	@location(0) position: vec3<f32>,
+	@location(1) normal: vec3<f32>,
 }
 
 struct VertexOutput {
 	@builtin(position) position: vec4<f32>,
+	@location(1) normal: vec3<f32>,
 }
 
 @vertex fn vertex(vertex: Vertex) -> VertexOutput {
 	let position = uniforms.view_projection * vec4(vertex.position, 1.);
-	return VertexOutput(position);
+	return VertexOutput(position, vertex.normal);
 }
 
 @fragment fn fragment(vertex: VertexOutput) -> @location(0) vec4<f32> {
-	return vec4(1.);
+	return vec4(vec3(dot(vertex.normal, vec3(0.,0.,-1.))), 1.);
 }

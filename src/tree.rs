@@ -1,4 +1,4 @@
-use ui::{Result, vector::{vec3, mat4}, vulkan::{Arc, Subbuffer, Context, Commands, from_iter, BufferUsage, buffer, ImageView, PrimitiveTopology}, shader};
+use ui::{Result, vector::{vec3, mat4, cross, normalize}, vulkan::{Arc, Subbuffer, Context, Commands, from_iter, BufferUsage, buffer, ImageView, PrimitiveTopology}, shader};
 shader!{tree}
 
 pub struct Tree {
@@ -9,7 +9,13 @@ pub struct Tree {
 
 impl Tree {
 	pub fn new(context: &Context, quads: &[vec3]) -> Result<Self> {
-		let vertices = from_iter(context, BufferUsage::VERTEX_BUFFER, quads.into_iter().map(|&p| tree::Vertex{position: p.into()}))?;
+		//let normals = quads.array_windows().map(|[a,b,c,_]| normalize(cross(b-a, c-a))).collect();
+		//let vertices = from_iter(context, BufferUsage::VERTEX_BUFFER, quads.into_iter().map(|&p| tree::Vertex{position: p.into()}))?;
+		let quads = quads.iter().array_chunks().map(|[a,b,c,d]| {
+			let n = normalize(cross(b-a, d-a));
+			[a,b,c,d].map(|&p| tree::Vertex{position: p.into(), normal: n.into()}).into_iter()
+		}).flatten().collect::<Vec<_>>();
+		let vertices = from_iter(context, BufferUsage::VERTEX_BUFFER, quads.iter().copied())?;
 		let indices = buffer(context, BufferUsage::INDEX_BUFFER, quads.len()/4*6)?;
 		{
 			let mut indices = indices.write()?;

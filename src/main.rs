@@ -1,4 +1,5 @@
 #![feature(slice_from_ptr_range)] // shader
+#![feature(iter_array_chunks)] // tree
 mod tree; use tree::Tree;
 use ui::{Result, run, size, int2, Widget, vulkan};
 use vulkan::{Context, Commands, Arc, ImageView, Image as GPUImage, ImageCreateInfo, Format, ImageUsage};
@@ -45,7 +46,7 @@ fn paint(&mut self, context@Context{memory_allocator, ..}: &Context, commands: &
 
 	tree.render(context, commands, target.clone(), depth.clone(), view_projection)?;
 
-	*yaw += PI/60./2.;
+	*yaw += PI/60./6.;
 	Ok(())
 }
 fn event(&mut self, _context: &Context, _commands: &mut Commands, _size: size, _event_context: &mut ui::EventContext, _event: &ui::Event) -> Result<bool> { Ok(true/*Keep repainting*/) }
@@ -77,16 +78,16 @@ fn main() -> Result {
 		for child in &mut parent.nodes { depth_first(child, f); }
 		f(parent);
 	}
-	for _ in 0..1 {
+	for _ in 0..2 {
 		depth_first(&mut tree, &|Node{nodes,..}:&mut Node| if nodes.is_empty() { *nodes = vec![
 			Node{position: xyz{x: 0., y: 0., z: 1.}, ..default()},
 			Node{position: normalize(vec3{x: 0., y: 1., z: 1.}), ..default()}
 		];})
 	}
-	for _ in 0..0 {
+	for _ in 0..1 {
 		depth_first(&mut tree, &|Node{nodes,..}:&mut Node| if nodes.is_empty() { *nodes = vec![
-			Node{position: xyz{x: 0., y: -1., z: 1.}, ..default()},
-			Node{position: xyz{x: 0., y: 1., z: 1.}, ..default()}
+			Node{position: normalize(vec3{x: 0., y: -1., z: 1.}), ..default()},
+			Node{position: normalize(vec3{x: 0., y: 1., z: 1.}), ..default()}
 		];})
 	}
 
