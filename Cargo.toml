@@ -4,12 +4,12 @@ build-dependencies={wgsl = {path='../ui/wgsl'}}
 [dependencies]
 rand='*'
 bytemuck='*'
-ui={path='../ui',features=['line']}
+ui={git='https://github.com/Matthias-Fauconneau/ui'}
 vulkano={git='https://github.com/vulkano-rs/vulkano', default-features=false, features=['macros']}
 vulkano-spirv={git='https://github.com/Matthias-Fauconneau/vulkano-spirv'}
-[patch.'https://github.com/vulkano-rs/vulkano'] # Also switches vulkano dependency for vulkano-spirv to use same version
-vulkano={ git='https://github.com/Matthias-Fauconneau/vulkano'  } # drm modifier
-[patch.crates-io] # In case vulkano-spirv would depend on crates-io version. But currently it tracks git version (breaking changes in vulkano::shader::spirv))
-vulkano={ git='https://github.com/Matthias-Fauconneau/vulkano' } # drm modifier
-[patch.'https://github.com/Matthias-Fauconneau/image'] # Also switches vulkano dependency for vulkano-spirv to use same version
-image={ path='../image' }
+#[patch.'https://github.com/vulkano-rs/vulkano'] # Also switches vulkano dependency for vulkano-spirv to use same version
+#vulkano={ git='https://github.com/Matthias-Fauconneau/vulkano'  } # drm modifier
+#[patch.crates-io] # In case vulkano-spirv would depend on crates-io version. But currently it tracks git version (breaking changes in vulkano::shader::spirv))
+#vulkano={ git='https://github.com/Matthias-Fauconneau/vulkano' } # drm modifier
+#[patch.'https://github.com/Matthias-Fauconneau/image']
+#image={ path='../image' }

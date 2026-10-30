@@ -5,7 +5,6 @@ use ui::{Result, run, size, int2, Widget, vulkan};
 use vulkan::{Context, Commands, Arc, ImageView, Image as GPUImage, ImageCreateInfo, Format, ImageUsage};
 
 pub fn default<T: Default>() -> T { Default::default() }
-use core::f32;
 use std::f32::consts::PI;
 use {ui::{vector::{xy, xyz, xyzw, vec3, vec4, mat4, cross, normalize, MinMax, minmax, rotate, sq}}, rand::random};
 
